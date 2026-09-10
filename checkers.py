@@ -1,25 +1,46 @@
 class LinkChecker:
     def __init__(self):
         pass
-
+    
     async def __aenter__(self):
         return self
-
+    
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         pass
-
+    
     def identify_platform(self, url):
         url = url.strip().lower()
-
+        
         if 'youtube.com' in url or 'youtu.be' in url:
             return 'youtube'
         elif 'instagram.com' in url:
             return 'instagram'
         elif 't.me' in url or 'telegram.me' in url or url.startswith('@'):
             return 'telegram'
-
+        
         return None
-
+    
+    def normalize_telegram(self, url):
+        """Приводит все форматы Telegram к одному username"""
+        username = url.strip()
+        
+        # Убираем @ в начале
+        if username.startswith('@'):
+            username = username[1:]
+        
+        # Убираем https://t.me/ и t.me/
+        if 't.me/' in username:
+            username = username.split('t.me/')[-1]
+        
+        # Убираем telegram.me/
+        if 'telegram.me/' in username:
+            username = username.split('telegram.me/')[-1]
+        
+        # Убираем лишние символы
+        username = username.split('?')[0].split('&')[0].split('/')[0]
+        
+        return username.lower()
+    
     async def check_youtube_channel(self, url):
         if '/@' in url:
             username = url.split('/@')[-1].split('/')[0]
@@ -29,15 +50,15 @@ class LinkChecker:
             username = url.split('/c/')[-1].split('/')[0]
         else:
             username = url.rstrip('/').split('/')[-1]
-
-        return True, username
-
+        
+        return True, username.lower() if username else None
+    
     async def check_instagram_profile(self, url):
         parts = url.rstrip('/').split('/')
         username = parts[-1] if parts[-1] else parts[-2]
-        return True, username
-
+        return True, username.lower() if username else None
+    
     async def check_telegram(self, url):
-        username = url.replace('@', '').split('/')[-1].strip()
-        username = username.split('?')[0]
-        return True, username
+        """Нормализует Telegram ссылку"""
+        username = self.normalize_telegram(url)
+        return True, username if username else None
